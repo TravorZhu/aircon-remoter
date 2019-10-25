@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Getting Started</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- 定制版 ionic 样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/vonic@2.0.0-beta.11/dist/vonic.min.css">
+
+    <!-- 依赖库 axios/vue/vue-router -->
+    <script src="https://unpkg.com/axios@0.15.3/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@2.1.10/dist/vue.min.js"></script>
+    <script src="https://unpkg.com/vue-router@2.2.1/dist/vue-router.min.js"></script>
+    <script src="https://unpkg.com/vuex@2.2.1/dist/vuex.min.js"></script>
+
+    <!-- vonic 核心文件 -->
+    <script src="https://unpkg.com/vonic@2.0.0-beta.11/dist/vonic.min.js"></script>
+</head>
+<body onload="init_page()">
+<!-- mount point -->
+<von-app></von-app>
+
+<style>
+    h2 {
+        font-family: Candara, Calibri, Segoe, Segoe UI, Optima, Arial, sans-serif;
+        color: #888;
+    }
+
+    .page.has-navbar .page-content {
+        padding-top: 100px;
+    }
+</style>
+
+<!-- templates -->
+<script type="text/x-template" id="index">
+    <div class="page has-navbar" v-nav="{ title: '空调远程遥控' }" >
+        <div class="page-content padding">
+            <div align="right">
+                <button onclick="on_off()" v-bind:class="[store.state.is_open ? 'button button-balanced' : 'button button-assertive']">{{ isOpen }}</button>
+            </div>
+            <h2>温度:{{ $store.state.tem  }}
+                <button class="button button-light button-fab" onclick="increment_tem()">
+                    <i class="icon ion-ios-arrow-up"></i>
+                </button>
+
+                <button class="button button-light button-fab" onclick="decrement_tem()">
+                    <i class="icon ion-ios-arrow-down"></i>
+                </button>
+            </h2>
+            <h2>风速
+                <button-bar theme="royal" :tab-items="store.state.promotions"
+                            :tab-index="store.state.speed"
+                            :on-tab-click="index => on_tab_click(index)"></button-bar>
+            </h2>
+            <von-toggle text="风向自动变化" value="{state.direct}" onclick="direct_change()"></von-toggle>
+
+        </div>
+    </div>
+</script>
+
+<script>
+    function init_page() {
+        self.setInterval(update_state,100)
+    }
+
+    function on_tab_click(index) {
+        axios({
+            method: 'post',
+            url: "/status", data: {
+                tem: state.tem,
+                direct: state.count,
+                speed: index
+            }, headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        }).then(res => {
+            update_state()
+
+        }).catch(err => {
+            console.log(err)
+        })
+    }
+
+    function increment_tem() {
+        axios({
+            method: 'post',
+            url: "/status", data: {
+                tem: state.tem + 1,
+                direct: state.count,
+                speed: state.speed
+            }, headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        }).then(res => {
+            update_state()
+
+        }).catch(err => {
+            console.log(err)
+        })
+    }
+
+    function decrement_tem() {
+        axios({
+            method: 'post',
+            url: "/status", data: {
+                tem: state.tem - 1,
+                direct: state.direct,
+                speed: state.speed
+            }, headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        }).then(res => {
+            update_state()
+
+        }).catch(err => {
+            console.log(err)
+        })
+    }
+
+    function direct_change() {
+        axios({
+            method: 'post',
+            url: "/status", data: {
+                tem: state.tem,
+                direct: state.direct,
+                speed: state.speed
+            }, headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        }).then(res => {
+            update_state()
+
+        }).catch(err => {
+            console.log(err)
+        })
+    }
+
+    function on_off() {
+        if(state.is_open){
+            axios({
+            method:'post',
+            url:"/power_off"
+        }).then(res =>{
+            update_state()
+        }).catch((err =>{
+            console.log(err)
+        }))
+        }else {
+            direct_change()
+        }
+
+    }
+
+    function update_state() {
+        axios({
+            method: 'get',
+            url: "/status",
+        }).then(res => {
+            state.tem = res.data.tem;
+            state.speed = res.data.speed;
+            state.direct = res.data.direct;
+            state.is_open = res.data.is_open;
+            console.log(res)
+        }).catch(err => {
+            console.log(err)
+        })
+    }
+
+
+
+    // state
+    var state = {
+        count: 0,
+        tem: 25,
+        promotions: ["自动", "弱", "中", "强"],
+        speed: 0,
+        direct: 0,
+        is_open: 1
+    }
+    // mutations
+    var mutations = {
+        increment: function () {
+            state.tem++
+        },
+        decrement: function () {
+            state.tem--
+        },
+        change_speed: function (index) {
+            state.speed = index
+        }
+    }
+    // actions
+    var actions = {
+        increment_tem: function (ctx) {
+            ctx.commit('increment')
+        },
+        decrement_tem: function (ctx) {
+            ctx.commit('decrement')
+        },
+        incrementIfOdd: function (ctx) {
+            if ((ctx.state.count + 1) % 2 === 0) {
+                ctx.commit('increment')
+            }
+        },
+        incrementAsync: function (ctx) {
+            setTimeout(function () {
+                ctx.commit('increment')
+            }, 1000)
+        },
+        change_speed: function (ctx, index) {
+            ctx.commit('change_speed', index)
+            console.debug('clicked')
+
+        }
+    }
+    var getters = {
+        evenOrOdd: function (state) {
+            return state.count % 2 === 0
+                ? 'even'
+                : 'odd'
+        },
+        isOpen: function (state) {
+            return state.is_open ? '已开启' : '已关闭'
+        }
+    }
+    // Store
+    var store = new Vuex.Store({
+        state: state,
+        getters: getters,
+        mutations: mutations,
+        actions: actions
+    })
+    // Page
+    var Index = {
+        
+        template: '#index',
+        computed: Vuex.mapGetters([
+            'evenOrOdd',
+            'isOpen'
+        ]),
+        mounted: function () {
+            console.log(this.$store);
+        },
+        methods: Vuex.mapActions([
+            'increment_tem',
+            'decrement_tem',
+            'incrementIfOdd',
+            'incrementAsync'
+        ])
+    }
+    // Start up
+    Vue.use(Vonic.app, {
+        routes: [{path: '/', component: Index}],
+        store: store
+    })
+</script>
+</body>
+</html>
